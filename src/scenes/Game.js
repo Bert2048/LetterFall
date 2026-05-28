@@ -101,8 +101,8 @@ export class Game extends Phaser.Scene {
             strokeThickness: 10
         }).setOrigin(0.5);
 
-        letter.velY = 75;
-        letter.rotSpeed = Phaser.Math.FloatBetween(-30, 30);
+        letter.velY = 40;
+        letter.rotSpeed = Phaser.Math.FloatBetween(-12, 12);
         letter.letterChar = char;
         letter.letterColor = color;
         this.letterObjs.push(letter);
