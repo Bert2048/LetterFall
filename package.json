@@ -1,0 +1,16 @@
+{
+  "name": "letter-fall",
+  "version": "1.0.0",
+  "description": "Baby alphabet cannon game — shoot falling letters, hear their names!",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "3.88.2"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
