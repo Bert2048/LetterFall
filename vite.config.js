@@ -4,7 +4,7 @@ export default defineConfig({
     base: './',
     build: {
         outDir: 'dist',
-        assetsDir: 'assets',
+        assetsDir: 'js',
         rollupOptions: {
             output: {
                 // Keep phaser in its own chunk so browser can cache it separately
