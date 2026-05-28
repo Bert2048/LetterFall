@@ -90,7 +90,14 @@ export class Game extends Phaser.Scene {
 
         const char = CHARS[Math.floor(Math.random() * CHARS.length)];
         const color = LETTER_COLORS[Math.floor(Math.random() * LETTER_COLORS.length)];
-        const x = Phaser.Math.Between(150, 1130);
+
+        // Retry until at least 220px away from every existing letter (prevents overlap)
+        let x, attempts = 0;
+        do {
+            x = Phaser.Math.Between(150, 1130);
+            attempts++;
+        } while (attempts < 10 && this.letterObjs.some(L => Math.abs(L.x - x) < 220));
+        if (attempts >= 10) return;
 
         const letter = this.add.text(x, -120, char, {
             fontFamily: 'Arial Black, Arial, sans-serif',
