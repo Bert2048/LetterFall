@@ -25,24 +25,24 @@ export class Game extends Phaser.Scene {
     create() {
         this.background = this.add.tileSprite(640, 360, 1280, 720, 'background');
 
-        // Generate a white circle texture for particles (will be tinted per letter)
-        const pg = this.make.graphics({ x: 0, y: 0, add: false });
+        // Particle texture — white circle, tinted per letter at explode time
+        const pg = this.make.graphics({ add: false });
         pg.fillStyle(0xffffff, 1);
-        pg.fillCircle(10, 10, 10);
-        pg.generateTexture('particle', 20, 20);
+        pg.fillCircle(8, 8, 8);
+        pg.generateTexture('particle', 16, 16);
         pg.destroy();
 
-        // Generate a glowing yellow bullet texture
-        const bg = this.make.graphics({ x: 0, y: 0, add: false });
+        // Bullet texture — glowing yellow circle
+        const bg = this.make.graphics({ add: false });
         bg.fillStyle(0xffeb3b, 1);
-        bg.fillCircle(12, 12, 10);
-        bg.lineStyle(3, 0xffffff, 1);
-        bg.strokeCircle(12, 12, 10);
-        bg.generateTexture('bullet', 24, 24);
+        bg.fillCircle(10, 10, 10);
+        bg.lineStyle(2, 0xffffff, 0.8);
+        bg.strokeCircle(10, 10, 10);
+        bg.generateTexture('bullet', 20, 20);
         bg.destroy();
 
-        // Cannon (spaceship spritesheet has 3 frames of fly animation)
-        this.cannon = this.physics.add.sprite(640, 650, 'ship');
+        // Cannon sprite (no physics needed — we position it directly)
+        this.cannon = this.add.sprite(640, 650, 'ship');
         this.anims.create({
             key: 'fly',
             frames: this.anims.generateFrameNumbers('ship', { start: 0, end: 2 }),
@@ -50,26 +50,24 @@ export class Game extends Phaser.Scene {
             repeat: -1
         });
         this.cannon.play('fly');
-        this.cannon.body.setAllowGravity(false);
 
-        this.bullets = this.physics.add.group();
-        this.letters = this.physics.add.group();
+        // Plain JS arrays — avoids PhysicsGroup resetting velocities on add()
+        this.letterObjs = [];
+        this.bulletObjs = [];
 
-        this.input.on('pointermove', (p) => {
+        this.input.on('pointermove', p => {
             this.cannon.x = Phaser.Math.Clamp(p.worldX, 100, 1180);
         });
 
-        // First click also unlocks speechSynthesis (Chrome requires user gesture)
         this.speechUnlocked = false;
         this.input.on('pointerdown', () => {
+            // First click unlocks speechSynthesis in Chrome (requires user gesture)
             if (!this.speechUnlocked && window.speechSynthesis) {
                 window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
                 this.speechUnlocked = true;
             }
             this.fireBullet();
         });
-
-        this.physics.add.overlap(this.bullets, this.letters, this.hitLetter, null, this);
 
         this.time.addEvent({
             delay: 1800,
@@ -82,19 +80,19 @@ export class Game extends Phaser.Scene {
     }
 
     fireBullet() {
-        const bullet = this.bullets.create(this.cannon.x, this.cannon.y - 50, 'bullet');
-        bullet.body.setAllowGravity(false);
-        bullet.setVelocityY(-750);
+        const b = this.add.image(this.cannon.x, this.cannon.y - 55, 'bullet');
+        b.velY = -750;
+        this.bulletObjs.push(b);
     }
 
     spawnLetter() {
-        if (this.letters.countActive(true) >= 2) return;
+        if (this.letterObjs.length >= 2) return;
 
         const char = CHARS[Math.floor(Math.random() * CHARS.length)];
         const color = LETTER_COLORS[Math.floor(Math.random() * LETTER_COLORS.length)];
-        const x = Phaser.Math.Between(140, 1140);
+        const x = Phaser.Math.Between(150, 1130);
 
-        const letter = this.add.text(x, -100, char, {
+        const letter = this.add.text(x, -120, char, {
             fontFamily: 'Arial Black, Arial, sans-serif',
             fontSize: '180px',
             fontStyle: 'bold',
@@ -103,14 +101,11 @@ export class Game extends Phaser.Scene {
             strokeThickness: 10
         }).setOrigin(0.5);
 
-        this.physics.add.existing(letter);
-        letter.body.setAllowGravity(false);
-        letter.body.setVelocityY(75);
-        letter.body.setAngularVelocity(Phaser.Math.Between(-25, 25));
+        letter.velY = 75;
+        letter.rotSpeed = Phaser.Math.FloatBetween(-30, 30);
         letter.letterChar = char;
         letter.letterColor = color;
-
-        this.letters.add(letter);
+        this.letterObjs.push(letter);
     }
 
     hitLetter(bullet, letter) {
@@ -122,10 +117,11 @@ export class Game extends Phaser.Scene {
         bullet.destroy();
         letter.destroy();
 
+        // Coloured particle burst
         const emitter = this.add.particles(x, y, 'particle', {
-            speed: { min: 120, max: 450 },
+            speed: { min: 120, max: 460 },
             angle: { min: 0, max: 360 },
-            scale: { start: 1.4, end: 0 },
+            scale: { start: 1.3, end: 0 },
             lifespan: 700,
             tint: tint,
             emitting: false
@@ -139,22 +135,56 @@ export class Game extends Phaser.Scene {
     speak(char) {
         if (!window.speechSynthesis) return;
         window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(`${char}. ${LETTER_WORDS[char]}`);
-        u.rate = 0.85;
-        u.pitch = 1.15;
-        u.volume = 1;
-        window.speechSynthesis.speak(u);
+
+        // Two separate utterances → browser inserts a natural pause between them
+        const u1 = new SpeechSynthesisUtterance(char);
+        u1.rate = 0.7;
+        u1.pitch = 1.1;
+
+        const u2 = new SpeechSynthesisUtterance(LETTER_WORDS[char]);
+        u2.rate = 0.7;
+        u2.pitch = 1.1;
+
+        window.speechSynthesis.speak(u1);
+        window.speechSynthesis.speak(u2);
     }
 
-    update() {
+    update(time, delta) {
+        const dt = delta / 1000;
+
         this.background.tilePositionX += 0.4;
 
-        this.bullets.children.each((b) => {
-            if (b.active && b.y < -30) b.destroy();
-        });
+        // Move letters down and rotate
+        for (let i = this.letterObjs.length - 1; i >= 0; i--) {
+            const L = this.letterObjs[i];
+            L.y += L.velY * dt;
+            L.angle += L.rotSpeed * dt;
+            if (L.y > 820) {
+                L.destroy();
+                this.letterObjs.splice(i, 1);
+            }
+        }
 
-        this.letters.children.each((l) => {
-            if (l.active && l.y > 820) l.destroy();
-        });
+        // Move bullets up; check collision with each letter
+        for (let bi = this.bulletObjs.length - 1; bi >= 0; bi--) {
+            const b = this.bulletObjs[bi];
+            b.y += b.velY * dt;
+
+            if (b.y < -30) {
+                b.destroy();
+                this.bulletObjs.splice(bi, 1);
+                continue;
+            }
+
+            for (let li = this.letterObjs.length - 1; li >= 0; li--) {
+                const L = this.letterObjs[li];
+                if (Math.abs(b.x - L.x) < 75 && Math.abs(b.y - L.y) < 90) {
+                    this.hitLetter(b, L);
+                    this.bulletObjs.splice(bi, 1);
+                    this.letterObjs.splice(li, 1);
+                    break;
+                }
+            }
+        }
     }
 }
