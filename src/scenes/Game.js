@@ -8,8 +8,10 @@ const LETTER_WORDS = {
     U: 'Umbrella', V: 'Van',  W: 'Whale',  X: 'Xylophone', Y: 'Yarn', Z: 'Zebra'
 };
 
-const LETTER_COLORS = ['#FF5252', '#FF9800', '#FFD600', '#76FF03', '#00E5FF', '#536DFE', '#E040FB'];
+// Warm, baby-friendly palette — replaces harsh neons
+const LETTER_COLORS = ['#FF6B6B', '#FF9F43', '#FFD93D', '#6BCB77', '#4D9DE0', '#C77DFF', '#FF6EB4'];
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const FONT = "'Fredoka One', 'Arial Rounded MT Bold', Arial, sans-serif";
 
 export class Game extends Phaser.Scene {
 
@@ -23,9 +25,27 @@ export class Game extends Phaser.Scene {
     }
 
     create() {
+        // --- Background ---
         this.background = this.add.tileSprite(640, 360, 1280, 720, 'background');
 
-        // Particle texture — white circle, tinted per letter at explode time
+        // Moon (top-right, crescent effect)
+        const moonGfx = this.add.graphics();
+        moonGfx.fillStyle(0xFFF8DC, 0.85);
+        moonGfx.fillCircle(1140, 82, 52);
+        moonGfx.fillStyle(0x1a2f5e, 0.92);
+        moonGfx.fillCircle(1158, 68, 50);
+
+        // Distant clouds (dark-tinted, subtle)
+        const cloudGfx = this.add.graphics();
+        cloudGfx.fillStyle(0x4a90d9, 0.11);
+        cloudGfx.fillEllipse(210, 425, 240, 80);
+        cloudGfx.fillEllipse(155, 418, 160, 68);
+        cloudGfx.fillEllipse(270, 422, 175, 62);
+        cloudGfx.fillEllipse(1060, 385, 260, 88);
+        cloudGfx.fillEllipse(995, 378, 180, 74);
+        cloudGfx.fillEllipse(1128, 382, 195, 68);
+
+        // Particle texture — white circle
         const pg = this.make.graphics({ add: false });
         pg.fillStyle(0xffffff, 1);
         pg.fillCircle(8, 8, 8);
@@ -41,8 +61,17 @@ export class Game extends Phaser.Scene {
         bg.generateTexture('bullet', 20, 20);
         bg.destroy();
 
-        // Cannon sprite (no physics needed — we position it directly)
-        this.cannon = this.add.sprite(640, 650, 'ship');
+        // Ground line overlay — blue-purple replaces the cold cyan in space.png
+        const groundGfx = this.add.graphics();
+        groundGfx.fillStyle(0x4D9DE0, 0.92);
+        groundGfx.fillRect(0, 598, 1280, 5);
+        groundGfx.fillStyle(0xC77DFF, 0.75);
+        groundGfx.fillRect(0, 603, 1280, 3);
+        groundGfx.fillStyle(0x4D9DE0, 0.12);
+        groundGfx.fillRect(0, 606, 1280, 55);
+
+        // Cannon sprite — scaled up for visibility
+        this.cannon = this.add.sprite(640, 645, 'ship').setScale(1.45);
         this.anims.create({
             key: 'fly',
             frames: this.anims.generateFrameNumbers('ship', { start: 0, end: 2 }),
@@ -55,13 +84,52 @@ export class Game extends Phaser.Scene {
         this.letterObjs = [];
         this.bulletObjs = [];
 
+        this.score = 0;
+        this.combo = 0;
+
+        // --- UI Layer ---
+
+        // Title (top-left)
+        this.add.text(38, 18, 'LetterFall', {
+            fontFamily: FONT,
+            fontSize: '38px',
+            color: '#FFD93D',
+            stroke: '#000000',
+            strokeThickness: 5
+        });
+
+        // Score (top-center)
+        this.scoreText = this.add.text(640, 18, '⭐ 0 ⭐', {
+            fontFamily: FONT,
+            fontSize: '30px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5, 0);
+
+        // Combo (top-right)
+        this.comboText = this.add.text(1242, 18, '', {
+            fontFamily: FONT,
+            fontSize: '26px',
+            color: '#6BCB77',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(1, 0);
+
+        // Instruction (bottom)
+        this.add.text(640, 708, '点击发射子弹 · 击中字母学英语', {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '14px',
+            color: '#666666'
+        }).setOrigin(0.5, 1);
+
+        // --- Input ---
         this.input.on('pointermove', p => {
             this.cannon.x = Phaser.Math.Clamp(p.worldX, 100, 1180);
         });
 
         this.speechUnlocked = false;
         this.input.on('pointerdown', () => {
-            // First click unlocks speechSynthesis in Chrome (requires user gesture)
             if (!this.speechUnlocked && window.speechSynthesis) {
                 window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
                 this.speechUnlocked = true;
@@ -80,7 +148,7 @@ export class Game extends Phaser.Scene {
     }
 
     fireBullet() {
-        const b = this.add.image(this.cannon.x, this.cannon.y - 55, 'bullet');
+        const b = this.add.image(this.cannon.x, this.cannon.y - 70, 'bullet');
         b.velY = -750;
         this.bulletObjs.push(b);
     }
@@ -91,7 +159,7 @@ export class Game extends Phaser.Scene {
         const char = CHARS[Math.floor(Math.random() * CHARS.length)];
         const color = LETTER_COLORS[Math.floor(Math.random() * LETTER_COLORS.length)];
 
-        // Retry until at least 220px away from every existing letter (prevents overlap)
+        // Retry until 220px clear of existing letters
         let x, attempts = 0;
         do {
             x = Phaser.Math.Between(150, 1130);
@@ -100,7 +168,7 @@ export class Game extends Phaser.Scene {
         if (attempts >= 10) return;
 
         const letter = this.add.text(x, -120, char, {
-            fontFamily: 'Arial Black, Arial, sans-serif',
+            fontFamily: FONT,
             fontSize: '180px',
             fontStyle: 'bold',
             color: color,
@@ -124,7 +192,7 @@ export class Game extends Phaser.Scene {
         bullet.destroy();
         letter.destroy();
 
-        // Coloured particle burst
+        // Particle burst
         const emitter = this.add.particles(x, y, 'particle', {
             speed: { min: 120, max: 460 },
             angle: { min: 0, max: 360 },
@@ -136,6 +204,31 @@ export class Game extends Phaser.Scene {
         emitter.explode(30);
         this.time.delayedCall(800, () => emitter.destroy());
 
+        // Score & combo
+        this.score++;
+        this.combo++;
+        this.scoreText.setText('⭐ ' + this.score + ' ⭐');
+        if (this.combo >= 2) {
+            this.comboText.setText('🔥 x' + this.combo);
+        }
+
+        // +1⭐ popup tween
+        const popup = this.add.text(x, y - 30, '+1 ⭐', {
+            fontFamily: FONT,
+            fontSize: '44px',
+            color: '#FFD93D',
+            stroke: '#000000',
+            strokeThickness: 5
+        }).setOrigin(0.5);
+        this.tweens.add({
+            targets: popup,
+            y: y - 130,
+            alpha: 0,
+            duration: 900,
+            ease: 'Power2',
+            onComplete: () => popup.destroy()
+        });
+
         this.speak(char);
     }
 
@@ -143,7 +236,6 @@ export class Game extends Phaser.Scene {
         if (!window.speechSynthesis) return;
         window.speechSynthesis.cancel();
 
-        // Two separate utterances → browser inserts a natural pause between them
         const u1 = new SpeechSynthesisUtterance(char);
         u1.rate = 0.7;
         u1.pitch = 1.1;
@@ -161,7 +253,6 @@ export class Game extends Phaser.Scene {
 
         this.background.tilePositionX += 0.4;
 
-        // Move letters down and rotate
         for (let i = this.letterObjs.length - 1; i >= 0; i--) {
             const L = this.letterObjs[i];
             L.y += L.velY * dt;
@@ -169,10 +260,12 @@ export class Game extends Phaser.Scene {
             if (L.y > 820) {
                 L.destroy();
                 this.letterObjs.splice(i, 1);
+                // Letter escaped — reset combo streak
+                this.combo = 0;
+                this.comboText.setText('');
             }
         }
 
-        // Move bullets up; check collision with each letter
         for (let bi = this.bulletObjs.length - 1; bi >= 0; bi--) {
             const b = this.bulletObjs[bi];
             b.y += b.velY * dt;
