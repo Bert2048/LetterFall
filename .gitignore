@@ -1,4 +1,8 @@
 node_modules/
 dist/
 .vercel/
+.vercel
 phaser.js
+.playwright-mcp/
+.serena/
+letterfall-*.png
