@@ -28,22 +28,16 @@ export class Game extends Phaser.Scene {
         // --- Background ---
         this.background = this.add.tileSprite(640, 360, 1280, 720, 'background');
 
-        // Moon (top-right, crescent effect)
+        // Moon (top-right) — full circle with soft craters, no overlay trick
         const moonGfx = this.add.graphics();
-        moonGfx.fillStyle(0xFFF8DC, 0.85);
-        moonGfx.fillCircle(1140, 82, 52);
-        moonGfx.fillStyle(0x1a2f5e, 0.92);
-        moonGfx.fillCircle(1158, 68, 50);
-
-        // Distant clouds (dark-tinted, subtle)
-        const cloudGfx = this.add.graphics();
-        cloudGfx.fillStyle(0x4a90d9, 0.11);
-        cloudGfx.fillEllipse(210, 425, 240, 80);
-        cloudGfx.fillEllipse(155, 418, 160, 68);
-        cloudGfx.fillEllipse(270, 422, 175, 62);
-        cloudGfx.fillEllipse(1060, 385, 260, 88);
-        cloudGfx.fillEllipse(995, 378, 180, 74);
-        cloudGfx.fillEllipse(1128, 382, 195, 68);
+        moonGfx.fillStyle(0xFFF8DC, 0.88);
+        moonGfx.fillCircle(1145, 80, 46);
+        moonGfx.fillStyle(0xD4C89A, 0.5);
+        moonGfx.fillCircle(1130, 68, 11);
+        moonGfx.fillStyle(0xD4C89A, 0.4);
+        moonGfx.fillCircle(1158, 92, 7);
+        moonGfx.fillStyle(0xD4C89A, 0.35);
+        moonGfx.fillCircle(1148, 58, 5);
 
         // Particle texture — white circle
         const pg = this.make.graphics({ add: false });
