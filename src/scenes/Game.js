@@ -14,6 +14,9 @@ export class Game extends Phaser.Scene {
     preload() {
         // 预加载所有蜡笔画风素材 / Preload all crayon art style assets
         this.load.image('background', 'assets/background.png');
+        this.load.image('trees', 'assets/trees.png');
+        this.load.image('bushes', 'assets/bushes.png');
+        this.load.image('grass', 'assets/grass.png');
         this.load.image('ground', 'assets/ground.png');
         this.load.image('bullet', 'assets/bullet.png');
         this.load.image('particle', 'assets/particle.png');
@@ -24,11 +27,22 @@ export class Game extends Phaser.Scene {
 
     create() {
         // --- Background ---
-        // 渲染平铺背景 / Render tiled background
-        this.background = this.add.tileSprite(640, 360, 1280, 720, 'background');
+        const W = this.scale.width;
+        const H = this.scale.height;
+        this.background = this.add.tileSprite(W / 2, H / 2, W, H, 'background');
 
-        // 渲染平铺草地地面 / Render tiled grass ground at bottom
-        this.ground = this.add.tileSprite(640, 660, 1280, 120, 'ground');
+        this.scale.on('resize', (gameSize) => {
+            const gw = gameSize.width;
+            const gh = gameSize.height;
+            this.background.setSize(gw, gh);
+            this.background.setPosition(gw / 2, gh / 2);
+        });
+
+        // 渲染视差中景与前景图层 / Render parallax layers
+        this.trees = this.add.tileSprite(640, 480, 1280, 250, 'trees');
+        this.bushes = this.add.tileSprite(640, 560, 1280, 150, 'bushes');
+        this.grass = this.add.tileSprite(640, 640, 1280, 90, 'grass');
+        this.ground = this.add.tileSprite(640, 700, 1280, 40, 'ground');
 
         // 炮台精灵 / Cannon sprite
         this.cannon = this.add.sprite(640, 645, 'cannon').setScale(1.45);
@@ -240,10 +254,19 @@ export class Game extends Phaser.Scene {
     update(time, delta) {
         const dt = delta / 1000;
 
-        // 背景和草地滚动，形成视差效果 / Parallax scrolling background and ground
-        this.background.tilePositionX += 0.4;
+        // 背景和草地滚动，形成多层视差效果（整体速度减慢） / Parallax scrolling layers (slowed down)
+        this.background.tilePositionX += 0.05;
+        if (this.trees) {
+            this.trees.tilePositionX += 0.15;
+        }
+        if (this.bushes) {
+            this.bushes.tilePositionX += 0.35;
+        }
+        if (this.grass) {
+            this.grass.tilePositionX += 0.6;
+        }
         if (this.ground) {
-            this.ground.tilePositionX += 1.2;
+            this.ground.tilePositionX += 0.6;
         }
 
         for (let i = this.letterObjs.length - 1; i >= 0; i--) {
