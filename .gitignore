@@ -6,3 +6,4 @@ phaser.js
 .playwright-mcp/
 .serena/
 letterfall-*.png
+.env*
