@@ -7,3 +7,7 @@ phaser.js
 .serena/
 letterfall-*.png
 .env*
+.idea
+.omc
+.remember
+
