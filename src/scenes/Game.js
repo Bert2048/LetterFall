@@ -14,6 +14,7 @@ export class Game extends Phaser.Scene {
     preload() {
         // 预加载所有蜡笔画风素材 / Preload all crayon art style assets
         this.load.image('background', 'assets/background.png');
+        this.load.image('clouds', 'assets/clouds.png');
         this.load.image('trees', 'assets/trees.png');
         this.load.image('bushes', 'assets/bushes.png');
         this.load.image('grass', 'assets/grass.png');
@@ -29,20 +30,26 @@ export class Game extends Phaser.Scene {
         // --- Background ---
         const W = this.scale.width;
         const H = this.scale.height;
+
+        // 背景：以游戏世界尺寸渲染，避免边角露出 backgroundColor
         this.background = this.add.tileSprite(W / 2, H / 2, W, H, 'background');
 
-        this.scale.on('resize', (gameSize) => {
-            const gw = gameSize.width;
-            const gh = gameSize.height;
-            this.background.setSize(gw, gh);
-            this.background.setPosition(gw / 2, gh / 2);
-        });
+        // 云层与各动态视差图层：宽度比游戏世界多 400px 缓冲，防止宽屏漏边
+        this.clouds = this.add.tileSprite(W / 2, 180, W + 400, 200, 'clouds');
+        this.trees  = this.add.tileSprite(W / 2, 480, W + 400, 250, 'trees');
+        this.bushes = this.add.tileSprite(W / 2, 560, W + 400, 150, 'bushes');
+        this.grass  = this.add.tileSprite(W / 2, 640, W + 400, 90,  'grass');
+        this.ground = this.add.tileSprite(W / 2, 700, W + 400, 40,  'ground');
 
-        // 渲染视差中景与前景图层 / Render parallax layers
-        this.trees = this.add.tileSprite(640, 480, 1280, 250, 'trees');
-        this.bushes = this.add.tileSprite(640, 560, 1280, 150, 'bushes');
-        this.grass = this.add.tileSprite(640, 640, 1280, 90, 'grass');
-        this.ground = this.add.tileSprite(640, 700, 1280, 40, 'ground');
+        // 窗口尺寸变化时同步更新所有图层
+        this.scale.on('resize', (gs) => {
+            const gW = gs.width;
+            const gH = gs.height;
+            this.background.setSize(gW, gH).setPosition(gW / 2, gH / 2);
+            [this.clouds, this.trees, this.bushes, this.grass, this.ground].forEach(s => {
+                s.setSize(gW + 400, s.height).setPosition(gW / 2, s.y);
+            });
+        });
 
         // 炮台精灵 / Cannon sprite
         this.cannon = this.add.sprite(640, 645, 'cannon').setScale(1.45);
@@ -254,8 +261,10 @@ export class Game extends Phaser.Scene {
     update(time, delta) {
         const dt = delta / 1000;
 
-        // 背景和草地滚动，形成多层视差效果（整体速度减慢） / Parallax scrolling layers (slowed down)
-        this.background.tilePositionX += 0.05;
+        // 各图层滚动，形成多层视差效果（天空静止，云朵极慢，整体速度放慢） / Parallax scrolling layers (sky static, clouds very slow, overall slowed down)
+        if (this.clouds) {
+            this.clouds.tilePositionX += 0.05;
+        }
         if (this.trees) {
             this.trees.tilePositionX += 0.15;
         }
