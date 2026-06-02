@@ -1,13 +1,5 @@
 import Phaser from 'phaser';
 
-const LETTER_WORDS = {
-    A: 'Apple',  B: 'Ball',   C: 'Cat',    D: 'Dog',    E: 'Egg',
-    F: 'Fish',   G: 'Goat',   H: 'Hat',    I: 'Ice',    J: 'Jam',
-    K: 'Kite',   L: 'Lion',   M: 'Moon',   N: 'Nest',   O: 'Orange',
-    P: 'Pig',    Q: 'Queen',  R: 'Rabbit', S: 'Sun',    T: 'Tree',
-    U: 'Umbrella', V: 'Van',  W: 'Whale',  X: 'Xylophone', Y: 'Yarn', Z: 'Zebra'
-};
-
 // Warm, baby-friendly palette — replaces harsh neons
 const LETTER_COLORS = ['#FF6B6B', '#FF9F43', '#FFD93D', '#6BCB77', '#4D9DE0', '#C77DFF', '#FF6EB4'];
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -20,59 +12,41 @@ export class Game extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('background', 'assets/space.png');
-        this.load.spritesheet('ship', 'assets/spaceship.png', { frameWidth: 176, frameHeight: 96 });
+        // 预加载所有蜡笔画风素材 / Preload all crayon art style assets
+        this.load.image('background', 'assets/background.png');
+        this.load.image('ground', 'assets/ground.png');
+        this.load.image('bullet', 'assets/bullet.png');
+        this.load.image('particle', 'assets/particle.png');
+        this.load.image('star', 'assets/star.png');
+        this.load.image('combo-fire', 'assets/combo-fire.png');
+        this.load.spritesheet('cannon', 'assets/cannon.png', { frameWidth: 176, frameHeight: 96 });
     }
 
     create() {
         // --- Background ---
+        // 渲染平铺背景 / Render tiled background
         this.background = this.add.tileSprite(640, 360, 1280, 720, 'background');
 
-        // Moon (top-right) — full circle with soft craters, no overlay trick
-        const moonGfx = this.add.graphics();
-        moonGfx.fillStyle(0xFFF8DC, 0.88);
-        moonGfx.fillCircle(1145, 80, 46);
-        moonGfx.fillStyle(0xD4C89A, 0.5);
-        moonGfx.fillCircle(1130, 68, 11);
-        moonGfx.fillStyle(0xD4C89A, 0.4);
-        moonGfx.fillCircle(1158, 92, 7);
-        moonGfx.fillStyle(0xD4C89A, 0.35);
-        moonGfx.fillCircle(1148, 58, 5);
+        // 渲染平铺草地地面 / Render tiled grass ground at bottom
+        this.ground = this.add.tileSprite(640, 660, 1280, 120, 'ground');
 
-        // Particle texture — white circle
-        const pg = this.make.graphics({ add: false });
-        pg.fillStyle(0xffffff, 1);
-        pg.fillCircle(8, 8, 8);
-        pg.generateTexture('particle', 16, 16);
-        pg.destroy();
-
-        // Bullet texture — glowing yellow circle
-        const bg = this.make.graphics({ add: false });
-        bg.fillStyle(0xffeb3b, 1);
-        bg.fillCircle(10, 10, 10);
-        bg.lineStyle(2, 0xffffff, 0.8);
-        bg.strokeCircle(10, 10, 10);
-        bg.generateTexture('bullet', 20, 20);
-        bg.destroy();
-
-        // Ground line overlay — blue-purple replaces the cold cyan in space.png
-        const groundGfx = this.add.graphics();
-        groundGfx.fillStyle(0x4D9DE0, 0.92);
-        groundGfx.fillRect(0, 598, 1280, 5);
-        groundGfx.fillStyle(0xC77DFF, 0.75);
-        groundGfx.fillRect(0, 603, 1280, 3);
-        groundGfx.fillStyle(0x4D9DE0, 0.12);
-        groundGfx.fillRect(0, 606, 1280, 55);
-
-        // Cannon sprite — scaled up for visibility
-        this.cannon = this.add.sprite(640, 645, 'ship').setScale(1.45);
+        // 炮台精灵 / Cannon sprite
+        this.cannon = this.add.sprite(640, 645, 'cannon').setScale(1.45);
+        
+        // 注册开炮和待机动画 / Create cannon shoot and idle animations
         this.anims.create({
-            key: 'fly',
-            frames: this.anims.generateFrameNumbers('ship', { start: 0, end: 2 }),
-            frameRate: 15,
+            key: 'cannon-idle',
+            frames: this.anims.generateFrameNumbers('cannon', { start: 0, end: 0 }),
+            frameRate: 1,
             repeat: -1
         });
-        this.cannon.play('fly');
+        this.anims.create({
+            key: 'cannon-shoot',
+            frames: this.anims.generateFrameNumbers('cannon', { start: 1, end: 2 }),
+            frameRate: 12,
+            repeat: 0
+        });
+        this.cannon.play('cannon-idle');
 
         // Plain JS arrays — avoids PhysicsGroup resetting velocities on add()
         this.letterObjs = [];
@@ -83,7 +57,7 @@ export class Game extends Phaser.Scene {
 
         // --- UI Layer ---
 
-        // Title (top-left)
+        // Title (top-left) - 游戏标题
         this.add.text(38, 18, 'LetterFall', {
             fontFamily: FONT,
             fontSize: '38px',
@@ -92,25 +66,27 @@ export class Game extends Phaser.Scene {
             strokeThickness: 5
         });
 
-        // Score (top-center)
-        this.scoreText = this.add.text(640, 18, '⭐ 0 ⭐', {
+        // Score (top-center) - 积分面板（左侧带星星图标） / Score panel with star icon
+        this.scoreIcon = this.add.image(600, 36, 'star').setScale(0.85);
+        this.scoreText = this.add.text(635, 36, '0', {
             fontFamily: FONT,
-            fontSize: '30px',
+            fontSize: '36px',
             color: '#ffffff',
             stroke: '#000000',
-            strokeThickness: 4
-        }).setOrigin(0.5, 0);
+            strokeThickness: 5
+        }).setOrigin(0, 0.5);
 
-        // Combo (top-right)
-        this.comboText = this.add.text(1242, 18, '', {
+        // Combo (top-right) - 连击面板（带火焰图标） / Combo panel with fire icon
+        this.comboIcon = this.add.image(1140, 36, 'combo-fire').setScale(0.7).setVisible(false);
+        this.comboText = this.add.text(1180, 36, '', {
             fontFamily: FONT,
-            fontSize: '26px',
-            color: '#6BCB77',
+            fontSize: '30px',
+            color: '#FF6B6B',
             stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(1, 0);
+            strokeThickness: 5
+        }).setOrigin(0, 0.5);
 
-        // Instruction (bottom)
+        // Instruction (bottom) - 操作提示
         this.add.text(640, 708, '点击发射子弹 · 击中字母学英语', {
             fontFamily: 'Arial, sans-serif',
             fontSize: '14px',
@@ -145,6 +121,12 @@ export class Game extends Phaser.Scene {
         const b = this.add.image(this.cannon.x, this.cannon.y - 70, 'bullet');
         b.velY = -750;
         this.bulletObjs.push(b);
+
+        // 播放开炮动画，并在播放完后返回待机 / Play shoot animation and return to idle
+        this.cannon.play('cannon-shoot');
+        this.cannon.once('animationcomplete', () => {
+            this.cannon.play('cannon-idle');
+        });
     }
 
     spawnLetter() {
@@ -198,12 +180,31 @@ export class Game extends Phaser.Scene {
         emitter.explode(30);
         this.time.delayedCall(800, () => emitter.destroy());
 
-        // Score & combo
+        // 增加得分和连击 / Add score and combo
         this.score++;
         this.combo++;
-        this.scoreText.setText('⭐ ' + this.score + ' ⭐');
+        
+        // 更新分数文本与星星缩放动画 / Update score text and animate star icon bounce
+        this.scoreText.setText(this.score);
+        this.tweens.add({
+            targets: this.scoreIcon,
+            scale: 1.15,
+            duration: 120,
+            yoyo: true,
+            ease: 'Back.easeOut'
+        });
+
+        // 更新连击火焰与连击文本 / Update combo display and play bounce tween
         if (this.combo >= 2) {
-            this.comboText.setText('🔥 x' + this.combo);
+            this.comboIcon.setVisible(true);
+            this.comboText.setText('x' + this.combo);
+            this.tweens.add({
+                targets: [this.comboIcon, this.comboText],
+                scale: { start: 0.7, to: 0.9 },
+                duration: 120,
+                yoyo: true,
+                ease: 'Back.easeOut'
+            });
         }
 
         // +1⭐ popup tween
@@ -230,22 +231,20 @@ export class Game extends Phaser.Scene {
         if (!window.speechSynthesis) return;
         window.speechSynthesis.cancel();
 
-        const u1 = new SpeechSynthesisUtterance(char);
-        u1.rate = 0.7;
-        u1.pitch = 1.1;
-
-        const u2 = new SpeechSynthesisUtterance(LETTER_WORDS[char]);
-        u2.rate = 0.7;
-        u2.pitch = 1.1;
-
-        window.speechSynthesis.speak(u1);
-        window.speechSynthesis.speak(u2);
+        const u = new SpeechSynthesisUtterance(char);
+        u.rate = 0.7;
+        u.pitch = 1.1;
+        window.speechSynthesis.speak(u);
     }
 
     update(time, delta) {
         const dt = delta / 1000;
 
+        // 背景和草地滚动，形成视差效果 / Parallax scrolling background and ground
         this.background.tilePositionX += 0.4;
+        if (this.ground) {
+            this.ground.tilePositionX += 1.2;
+        }
 
         for (let i = this.letterObjs.length - 1; i >= 0; i--) {
             const L = this.letterObjs[i];
@@ -254,8 +253,9 @@ export class Game extends Phaser.Scene {
             if (L.y > 820) {
                 L.destroy();
                 this.letterObjs.splice(i, 1);
-                // Letter escaped — reset combo streak
+                // 字母掉落越界，重置连击 / Letter escaped — reset combo streak
                 this.combo = 0;
+                this.comboIcon.setVisible(false);
                 this.comboText.setText('');
             }
         }
