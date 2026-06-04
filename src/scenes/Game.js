@@ -35,13 +35,13 @@ export class Game extends Phaser.Scene {
         // 背景：使用 Image 代替 tileSprite 并使用 setDisplaySize 拉伸以保证完全铺满 / Use Image instead of tileSprite and setDisplaySize to stretch-fill the screen
         this.background = this.add.image(W / 2, H / 2, 'background').setDisplaySize(W, H);
 
-        // 云层与各动态视差图层：宽度比游戏世界多 400px 缓冲，防止宽屏漏边
-        this.clouds = this.add.tileSprite(640, 180, 1280, 200, 'clouds');
-        this.trees = this.add.tileSprite(640, 480, 1280, 250, 'trees');
-        this.bushes = this.add.tileSprite(640, 560, 1280, 150, 'bushes');
-        this.midgrass = this.add.tileSprite(640, 600, 1280, 100, 'midground-grass');
-        this.grass = this.add.tileSprite(640, 640, 1280, 90, 'grass');
-        this.ground = this.add.tileSprite(640, 700, 1280, 40, 'ground');
+        // 各动态视差图层：中心和宽度跟随游戏世界实际宽度，额外 +400 缓冲防止宽屏漏边
+        this.clouds   = this.add.tileSprite(W / 2, 180, W + 400, 200, 'clouds');
+        this.trees    = this.add.tileSprite(W / 2, 480, W + 400, 250, 'trees');
+        this.bushes   = this.add.tileSprite(W / 2, 560, W + 400, 150, 'bushes');
+        this.midgrass = this.add.tileSprite(W / 2, 600, W + 400, 100, 'midground-grass');
+        this.grass    = this.add.tileSprite(W / 2, 640, W + 400, 90,  'grass');
+        this.ground   = this.add.tileSprite(W / 2, 700, W + 400, 40,  'ground');
 
         // 窗口尺寸变化时同步更新所有图层
         this.scale.on('resize', (gs) => {

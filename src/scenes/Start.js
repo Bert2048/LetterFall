@@ -22,20 +22,26 @@ export class Start extends Phaser.Scene {
     }
 
     create() {
-        // 渲染视差背景图层 / Render parallax background layers
-        // 用 Image 代替 tileSprite 渲染背景以实现完整拉伸填充 / Use Image instead of tileSprite to stretch-fill the background
-        this.background = this.add.image(640, 360, 'background').setDisplaySize(1280, 720);
-        
-        // 独立的云朵浮动层 / Independent clouds layer
-        this.clouds = this.add.tileSprite(640, 180, 1280, 200, 'clouds');
-        
-        this.trees = this.add.tileSprite(640, 480, 1280, 250, 'trees');
-        this.bushes = this.add.tileSprite(640, 560, 1280, 150, 'bushes');
-        // 中景纯草地层 / Midground pure grass layer
-        this.midgrass = this.add.tileSprite(640, 600, 1280, 100, 'midground-grass');
-        // 渲染独立的草地和地面层 / Render separate grass and ground layers
-        this.grass = this.add.tileSprite(640, 640, 1280, 90, 'grass');
-        this.ground = this.add.tileSprite(640, 700, 1280, 40, 'ground');
+        const W = this.scale.width;
+        const H = this.scale.height;
+
+        this.background = this.add.image(W / 2, H / 2, 'background').setDisplaySize(W, H);
+
+        this.clouds   = this.add.tileSprite(W / 2, 180, W + 400, 200, 'clouds');
+        this.trees    = this.add.tileSprite(W / 2, 480, W + 400, 250, 'trees');
+        this.bushes   = this.add.tileSprite(W / 2, 560, W + 400, 150, 'bushes');
+        this.midgrass = this.add.tileSprite(W / 2, 600, W + 400, 100, 'midground-grass');
+        this.grass    = this.add.tileSprite(W / 2, 640, W + 400, 90,  'grass');
+        this.ground   = this.add.tileSprite(W / 2, 700, W + 400, 40,  'ground');
+
+        this.scale.on('resize', (gs) => {
+            const gW = gs.width;
+            const gH = gs.height;
+            this.background.setPosition(gW / 2, gH / 2).setDisplaySize(gW, gH);
+            [this.clouds, this.trees, this.bushes, this.midgrass, this.grass, this.ground].forEach(s => {
+                if (s) s.setSize(gW + 400, s.height).setPosition(gW / 2, s.y);
+            });
+        });
 
         // 渲染 Logo / Render Logo
         const logo = this.add.image(640, 220, 'logo');
