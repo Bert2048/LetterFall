@@ -17,6 +17,7 @@ export class Game extends Phaser.Scene {
         this.load.image('clouds', 'assets/clouds.png');
         this.load.image('trees', 'assets/trees.png');
         this.load.image('bushes', 'assets/bushes.png');
+        this.load.image('midground-grass', 'assets/midground-grass.png');
         this.load.image('grass', 'assets/grass.png');
         this.load.image('ground', 'assets/ground.png');
         this.load.image('bullet', 'assets/bullet.png');
@@ -31,23 +32,27 @@ export class Game extends Phaser.Scene {
         const W = this.scale.width;
         const H = this.scale.height;
 
-        // 背景：以游戏世界尺寸渲染，避免边角露出 backgroundColor
-        this.background = this.add.tileSprite(W / 2, H / 2, W, H, 'background');
+        // 背景：使用 Image 代替 tileSprite 并使用 setDisplaySize 拉伸以保证完全铺满 / Use Image instead of tileSprite and setDisplaySize to stretch-fill the screen
+        this.background = this.add.image(W / 2, H / 2, 'background').setDisplaySize(W, H);
 
         // 云层与各动态视差图层：宽度比游戏世界多 400px 缓冲，防止宽屏漏边
-        this.clouds = this.add.tileSprite(W / 2, 180, W + 400, 200, 'clouds');
-        this.trees  = this.add.tileSprite(W / 2, 480, W + 400, 250, 'trees');
-        this.bushes = this.add.tileSprite(W / 2, 560, W + 400, 150, 'bushes');
-        this.grass  = this.add.tileSprite(W / 2, 640, W + 400, 90,  'grass');
-        this.ground = this.add.tileSprite(W / 2, 700, W + 400, 40,  'ground');
+        this.clouds = this.add.tileSprite(640, 180, 1280, 200, 'clouds');
+        this.trees = this.add.tileSprite(640, 480, 1280, 250, 'trees');
+        this.bushes = this.add.tileSprite(640, 560, 1280, 150, 'bushes');
+        this.midgrass = this.add.tileSprite(640, 600, 1280, 100, 'midground-grass');
+        this.grass = this.add.tileSprite(640, 640, 1280, 90, 'grass');
+        this.ground = this.add.tileSprite(640, 700, 1280, 40, 'ground');
 
         // 窗口尺寸变化时同步更新所有图层
         this.scale.on('resize', (gs) => {
             const gW = gs.width;
             const gH = gs.height;
-            this.background.setSize(gW, gH).setPosition(gW / 2, gH / 2);
-            [this.clouds, this.trees, this.bushes, this.grass, this.ground].forEach(s => {
-                s.setSize(gW + 400, s.height).setPosition(gW / 2, s.y);
+            this.background.setPosition(gW / 2, gH / 2).setDisplaySize(gW, gH);
+            // 同步更新所有视差滚动层的大小和位置 / Sync size and position for all parallax layers
+            [this.clouds, this.trees, this.bushes, this.midgrass, this.grass, this.ground].forEach(s => {
+                if (s) {
+                    s.setSize(gW + 400, s.height).setPosition(gW / 2, s.y);
+                }
             });
         });
 
@@ -269,7 +274,10 @@ export class Game extends Phaser.Scene {
             this.trees.tilePositionX += 0.15;
         }
         if (this.bushes) {
-            this.bushes.tilePositionX += 0.35;
+            this.bushes.tilePositionX += 0.30;
+        }
+        if (this.midgrass) {
+            this.midgrass.tilePositionX += 0.45;
         }
         if (this.grass) {
             this.grass.tilePositionX += 0.6;
