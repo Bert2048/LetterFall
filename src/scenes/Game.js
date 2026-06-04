@@ -257,7 +257,7 @@ export class Game extends Phaser.Scene {
         if (!window.speechSynthesis) return;
         window.speechSynthesis.cancel();
 
-        const u = new SpeechSynthesisUtterance(char);
+        const u = new SpeechSynthesisUtterance(char.toLowerCase());
         u.rate = 0.7;
         u.pitch = 1.1;
         window.speechSynthesis.speak(u);
