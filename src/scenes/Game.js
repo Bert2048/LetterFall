@@ -145,7 +145,7 @@ export class Game extends Phaser.Scene {
 
     fireBullet() {
         const b = this.add.image(this.cannon.x, this.cannon.y - 70, 'bullet')
-            .setDisplaySize(40, 40)
+            .setDisplaySize(20, 40)
             .setOrigin(0.5);
         b.velY = -750;
         this.bulletObjs.push(b);
